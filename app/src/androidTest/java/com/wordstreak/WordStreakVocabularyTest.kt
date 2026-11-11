@@ -5,6 +5,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.wordstreak.data.local.WordStreakDatabase
 import com.wordstreak.data.local.entity.Word
 import com.wordstreak.data.local.entity.WordBook
+import com.wordstreak.data.local.entity.StudyRecord
+import com.wordstreak.data.local.entity.StudySession
+import com.wordstreak.data.repository.StudyRepository
 import com.wordstreak.data.repository.WordBookRepository
 import com.wordstreak.data.repository.WordRepository
 import kotlinx.coroutines.flow.first
@@ -68,5 +71,21 @@ class WordStreakVocabularyTest {
         words.addWord(Word(bookId = bookId, spelling = "orange", meaning = "橙子", createdAt = now, updatedAt = now))
         assertEquals("apple", words.search(bookId, "app").first().single().spelling)
         assertEquals("orange", words.search(bookId, "橙").first().single().spelling)
+    }
+    @Test
+    fun deletingWordKeepsStudyRecordSnapshotAndNullsForeignKey() = runBlocking<Unit> {
+        val bookId = books.create("历史保护")
+        val now = System.currentTimeMillis()
+        val wordId = words.addWord(Word(bookId = bookId, spelling = "remember", meaning = "记住", createdAt = now, updatedAt = now))
+        val study = StudyRepository(database.studyDao(), database.reviewDao(), database.wordDao())
+        val sessionId = study.startSession(StudySession(date = "2026-11-12", startedAt = now))
+        study.addRecord(StudyRecord(sessionId = sessionId, wordId = wordId, result = "GOOD",
+            isCorrect = true, createdAt = now))
+        words.deleteWord(words.getById(wordId)!!)
+
+        val record = study.recordsBySession(sessionId).single()
+        assertEquals(null, record.wordId)
+        assertEquals("remember", record.wordSpelling)
+        assertEquals("记住", record.wordMeaning)
     }
 }
