@@ -32,11 +32,7 @@ interface WordDao {
     @Query("SELECT * FROM words WHERE id = :id")
     suspend fun getById(id: Long): Word?
 
-    @Query(
-        "SELECT * FROM words WHERE bookId = :bookId AND " +
-            "(spelling LIKE '%' || :query || '%' OR meaning LIKE '%' || :query || '%') " +
-            "ORDER BY spelling ASC"
-    )
+    @Query("SELECT * FROM words WHERE bookId = :bookId AND (spelling LIKE '%' || :query || '%' OR meaning LIKE '%' || :query || '%') ORDER BY spelling ASC")
     fun search(bookId: Long, query: String): Flow<List<Word>>
 
     @Query("SELECT * FROM words WHERE favorite = 1 ORDER BY spelling ASC")
@@ -48,7 +44,9 @@ interface WordDao {
     @Query("SELECT COUNT(*) FROM words WHERE bookId = :bookId AND spelling = :spelling")
     suspend fun countBySpelling(bookId: Long, spelling: String): Int
 
-    /** 同词库内忽略大小写的重复计数（用于业务层大小写重复校验）。 */
     @Query("SELECT COUNT(*) FROM words WHERE bookId = :bookId AND spelling = :spelling COLLATE NOCASE")
     suspend fun countBySpellingIgnoreCase(bookId: Long, spelling: String): Int
+
+    @Query("SELECT COUNT(*) FROM words WHERE bookId = :bookId AND spelling = :spelling COLLATE NOCASE AND id != :excludeId")
+    suspend fun countBySpellingIgnoreCaseExceptId(bookId: Long, spelling: String, excludeId: Long): Int
 }

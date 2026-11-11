@@ -6,6 +6,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import androidx.room.Update
+import com.wordstreak.data.local.entity.BookWithWordCount
 import com.wordstreak.data.local.entity.WordBook
 import kotlinx.coroutines.flow.Flow
 
@@ -22,6 +23,9 @@ interface WordBookDao {
 
     @Query("SELECT * FROM word_books ORDER BY createdAt DESC")
     fun getAll(): Flow<List<WordBook>>
+
+    @Query("SELECT word_books.*, COUNT(words.id) AS wordCount FROM word_books LEFT JOIN words ON words.bookId = word_books.id GROUP BY word_books.id ORDER BY word_books.createdAt DESC")
+    fun getAllWithWordCount(): Flow<List<BookWithWordCount>>
 
     @Query("SELECT * FROM word_books ORDER BY createdAt DESC")
     suspend fun getAllOnce(): List<WordBook>
