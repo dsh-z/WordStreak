@@ -46,6 +46,14 @@ jobs:
       - name: Assemble (standard Room 2.8.5 + query verification)
         run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon --stacktrace
 
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: WordStreak-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
+          retention-days: 30
+
   instrumented:
     name: connectedAndroidTest (emulator)
     runs-on: ubuntu-latest
