@@ -33,7 +33,7 @@ class WordListViewModel(
     fun setQuery(value: String) { query.value = value }
 
     fun save(word: Word?, spelling: String, meaning: String, phonetic: String, partOfSpeech: String,
-             example: String, exampleTranslation: String, onError: (String) -> Unit) {
+             example: String, exampleTranslation: String, onError: (String) -> Unit, onSaved: () -> Unit = {}) {
         viewModelScope.launch {
             runCatching {
                 val now = System.currentTimeMillis()
@@ -47,7 +47,7 @@ class WordListViewModel(
                         phonetic = phonetic.ifBlank { null }, partOfSpeech = partOfSpeech.ifBlank { null },
                         example = example.ifBlank { null }, exampleTranslation = exampleTranslation.ifBlank { null }))
                 }
-            }.onFailure { onError(it.message ?: "保存单词失败") }
+            }.onSuccess { onSaved() }.onFailure { onError(it.message ?: "保存单词失败") }
         }
     }
 

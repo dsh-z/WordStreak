@@ -14,12 +14,12 @@ class VocabularyViewModel(private val repository: WordBookRepository) : ViewMode
     val books: StateFlow<List<BookWithWordCount>> = repository.observeWithWordCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    fun save(book: WordBook?, name: String, description: String, onError: (String) -> Unit) {
+    fun save(book: WordBook?, name: String, description: String, onError: (String) -> Unit, onSaved: () -> Unit = {}) {
         viewModelScope.launch {
             runCatching {
                 if (book == null) repository.create(name, description)
                 else repository.update(book.copy(name = name, description = description))
-            }.onFailure { onError(it.message ?: "保存词库失败") }
+            }.onSuccess { onSaved() }.onFailure { onError(it.message ?: "保存词库失败") }
         }
     }
 

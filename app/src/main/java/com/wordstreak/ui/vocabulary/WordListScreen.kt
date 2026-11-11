@@ -113,8 +113,8 @@ fun WordListScreen(bookId: Long, onBack: () -> Unit) {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    vm.save(editing, spelling, meaning, phonetic, partOfSpeech, example, exampleTranslation) { error = it }
-                    if (spelling.isNotBlank() && meaning.isNotBlank()) showEditor = false
+                    vm.save(editing, spelling, meaning, phonetic, partOfSpeech, example, exampleTranslation,
+                        onError = { error = it }, onSaved = { showEditor = false })
                 }) { Text("保存") }
             },
             dismissButton = { TextButton(onClick = { showEditor = false }) { Text("取消") } }

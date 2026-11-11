@@ -93,8 +93,7 @@ fun VocabularyScreen(onOpenBook: (Long) -> Unit = {}) {
             },
             confirmButton = {
                 TextButton(onClick = {
-                    vm.save(editing, name, description) { error = it }
-                    if (name.isNotBlank()) showEditor = false
+                    vm.save(editing, name, description, onError = { error = it }, onSaved = { showEditor = false })
                 }) { Text("保存") }
             },
             dismissButton = { TextButton(onClick = { showEditor = false }) { Text("取消") } }
