@@ -1,0 +1,76 @@
+name: Android CI (WordStreak)
+
+# 标准 Linux CI：使用官方未修改的 Room 2.8.5 编译器，恢复 SQL 编译期查询验证。
+# 不使用本地 bionic 兼容开关（不带 -Pwordstreak.localBionic=true），也不使用 localrepo。
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (assembleDebug + assembleDebugAndroidTest)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Accept licenses & install platform/build-tools
+        run: |
+          yes | sdkmanager --licenses || true
+          sdkmanager "platforms;android-37" "build-tools;36.0.0" "platform-tools" || true
+
+      - name: Assemble (standard Room 2.8.5 + query verification)
+        run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon --stacktrace
+
+  instrumented:
+    name: connectedAndroidTest (emulator)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        api-level: [ 34 ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Run instrumented DB tests
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          arch: x86_64
+          target: google_apis
+          disable-animations: true
+          script: ./gradlew :app:connectedDebugAndroidTest --no-daemon --stacktrace
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: androidTest-reports
+          path: |
+            app/build/reports/androidTests/
+            app/build/outputs/androidTest-results/

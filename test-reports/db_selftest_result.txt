@@ -1,0 +1,25 @@
+PASS  1_createAndQueryWordBook
+PASS  2_updateWordBook
+PASS  3_deleteWordBook
+PASS  4_5_6_7_wordCrudAndSearch
+PASS  S_duplicateWordRejected
+PASS  S_caseInsensitiveDuplicateRejected
+PASS  S_blankFieldsRejected
+PASS  8_studySessionAndRecords
+PASS  S_invalidStudyResultRejected
+PASS  11_saveReviewState
+PASS  12_saveDailyStat
+PASS  13_duplicateCheckInSameDay
+PASS  14_saveSettings
+PASS  S_invalidDateRejected
+PASS  S_goalSnapshotIndependentOfSettings
+PASS  S_dailyStatNoDoubleCount
+PASS  S_statisticsConsistencyOnBookDelete
+PASS  S_transactionRollback
+PASS  16_historyPreservedOnBookDelete_noOrphans
+PASS  17_historyPreservedOnWordDelete
+PASS  15_dataPersistsAcrossRestart
+PASS  M_migrationV1ToV2_preservesDataAndSchema
+PASS  S_timezoneCalendarDayStoredAsGiven
+
+SUMMARY: PASS=23 FAIL=0 TOTAL=23

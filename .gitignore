@@ -1,0 +1,27 @@
+# Build outputs
+/build/
+/app/build/
+*.apk
+*.aab
+/app/release/
+
+# Gradle / Kotlin caches
+/.gradle/
+/.kotlin/
+
+# Local machine config (SDK path) — CI uses ANDROID_HOME
+/local.properties
+
+# Local-only bionic build workaround (patched room-compiler); never used by standard/CI build
+/localrepo/
+
+# Local backups & ad-hoc logs
+/backup/
+*.log
+
+# IDE
+/.idea/
+*.iml
+.DS_Store
+
+# Keep: gradle/wrapper/gradle-wrapper.jar* , app/schemas/** , .github/** , test-reports/**

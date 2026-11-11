@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <!-- 仅 debug 构建包含：在真实设备上运行数据库自检，结果写入 filesDir/db_selftest.txt -->
+        <activity
+            android:name=".DbSelfTestActivity"
+            android:exported="true" />
+    </application>
+</manifest>
