@@ -1,13 +1,20 @@
 name: Android CI (WordStreak)
 
-# 标准 Linux CI：使用官方未修改的 Room 2.8.5 编译器，恢复 SQL 编译期查询验证。
-# 不使用本地 bionic 兼容开关（不带 -Pwordstreak.localBionic=true），也不使用 localrepo。
+# 标准 Linux CI：官方未修改的 Room 2.8.5，恢复 SQL 编译期查询验证。
+# 不使用本地 bionic 兼容开关，也不使用 localrepo。
+# 说明：GitHub 托管 ubuntu runner 自带 Android SDK（/usr/local/lib/android/sdk），
+# 这里不再使用会失败于 "Failed to find package 'tools'" 的 setup-android@v3，
+# 改为显式 sdkmanager 安装平台/build-tools 并接受许可。
 
 on:
   push:
     branches: [ main ]
   pull_request:
   workflow_dispatch:
+
+env:
+  ANDROID_HOME: /usr/local/lib/android/sdk
+  ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
 
 jobs:
   build:
@@ -22,13 +29,19 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept licenses & install platform/build-tools
+      - name: Prepare Android SDK (preinstalled) + install platform/build-tools
         run: |
-          yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-37" "build-tools;36.0.0" "platform-tools" || true
+          set +e
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$SM" ] || SM="$(ls "$SDK"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | tail -1)"
+          echo "sdkmanager=$SM"
+          yes | "$SM" --licenses >/dev/null 2>&1
+          echo "----- available platforms/build-tools (tail) -----"
+          "$SM" --list 2>/dev/null | grep -iE "platforms;android-[0-9]+|build-tools;[0-9.]+" | tail -50
+          echo "----- install -----"
+          "$SM" "platform-tools" "platforms;android-37" "build-tools;36.0.0" 2>&1 | tail -20
+          true
 
       - name: Assemble (standard Room 2.8.5 + query verification)
         run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon --stacktrace
@@ -48,8 +61,15 @@ jobs:
           distribution: temurin
           java-version: '21'
 
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
+      - name: Prepare Android SDK
+        run: |
+          set +e
+          SDK="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          SM="$SDK/cmdline-tools/latest/bin/sdkmanager"
+          [ -x "$SM" ] || SM="$(ls "$SDK"/cmdline-tools/*/bin/sdkmanager 2>/dev/null | tail -1)"
+          yes | "$SM" --licenses >/dev/null 2>&1
+          "$SM" "platform-tools" "platforms;android-37" "build-tools;36.0.0" 2>&1 | tail -10
+          true
 
       - name: Enable KVM
         run: |
