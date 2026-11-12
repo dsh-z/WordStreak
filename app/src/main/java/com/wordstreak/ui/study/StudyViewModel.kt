@@ -87,16 +87,6 @@ class StudyViewModel(
             _uiState.value = state.copy(isSaving = true, error = null)
             runCatching {
                 val now = System.currentTimeMillis()
-                studyRepository.addRecord(
-                    StudyRecord(
-                        sessionId = session.id,
-                        wordId = word.id,
-                        result = result,
-                        isCorrect = result != "AGAIN",
-                        createdAt = now
-                    )
-                )
-
                 val updatedCounts = state.counts.toMutableMap().apply {
                     this[result] = (this[result] ?: 0) + 1
                 }
@@ -108,7 +98,16 @@ class StudyViewModel(
                     endedAt = if (isLastWord) now else null,
                     completed = isLastWord
                 )
-                studyRepository.finishSession(updatedSession)
+                studyRepository.saveRatingAndSession(
+                    StudyRecord(
+                        sessionId = session.id,
+                        wordId = word.id,
+                        result = result,
+                        isCorrect = result != "AGAIN",
+                        createdAt = now
+                    ),
+                    updatedSession
+                )
                 updatedSession to updatedCounts
             }.onSuccess { (updatedSession, updatedCounts) ->
                 currentSession = updatedSession
