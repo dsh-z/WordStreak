@@ -148,4 +148,43 @@ class WordStreakStudyTest {
         assertNull(study.recordsBySession(sessionId).firstOrNull())
         assertEquals(setOf("AGAIN", "HARD", "GOOD", "EASY"), StudyRepository.RESULTS)
     }
+
+    @Test
+    fun ratingInsertRollsBackWhenSessionUpdateFails() = runBlocking<Unit> {
+        val bookId = books.create("事务回滚测试")
+        val now = System.currentTimeMillis()
+        val wordId = words.addWord(
+            Word(bookId = bookId, spelling = "atomic", meaning = "原子性", createdAt = now, updatedAt = now)
+        )
+        val sessionId = study.startSession(StudySession(date = "2026-11-12", startedAt = now))
+
+        val error = runCatching {
+            study.saveRatingAndSession(
+                StudyRecord(
+                    sessionId = sessionId,
+                    wordId = wordId,
+                    result = "GOOD",
+                    isCorrect = true,
+                    createdAt = now
+                ),
+                StudySession(
+                    id = sessionId + 999,
+                    date = "2026-11-12",
+                    startedAt = now,
+                    endedAt = now + 1,
+                    newCount = 1,
+                    reviewCount = 0,
+                    completed = false
+                )
+            )
+        }.exceptionOrNull()
+
+        assertNotNull(error)
+        assertTrue(study.recordsBySession(sessionId).isEmpty())
+        val savedSession = study.getSession(sessionId)
+        assertNotNull(savedSession)
+        assertEquals(0, savedSession?.newCount)
+        assertFalse(savedSession?.completed ?: true)
+    }
+
 }
