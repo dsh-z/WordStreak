@@ -43,8 +43,41 @@ jobs:
           "$SM" "platform-tools" "platforms;android-37" "build-tools;36.0.0" 2>&1 | tail -20
           true
 
-      - name: Assemble (standard Room 2.8.5 + query verification)
+      - name: Decode keystore (fixed signing)
+        env:
+          WS_KEYSTORE_BASE64: ${{ secrets.WS_KEYSTORE_BASE64 }}
+        run: |
+          set -e
+          if [ -z "$WS_KEYSTORE_BASE64" ]; then
+            echo "::error::WS_KEYSTORE_BASE64 secret 未配置，无法进行固定签名，已停止。请在仓库 Secrets 配置后重试。"
+            exit 1
+          fi
+          echo "$WS_KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/wordstreak.jks"
+          test -s "$RUNNER_TEMP/wordstreak.jks"
+          echo "keystore decoded -> $RUNNER_TEMP/wordstreak.jks"
+
+      - name: Assemble (standard Room 2.8.5 + fixed signing)
+        env:
+          WS_STORE_FILE: ${{ runner.temp }}/wordstreak.jks
+          WS_STORE_PASSWORD: ${{ secrets.WS_STORE_PASSWORD }}
+          WS_KEY_ALIAS: ${{ secrets.WS_KEY_ALIAS }}
+          WS_KEY_PASSWORD: ${{ secrets.WS_KEY_PASSWORD }}
         run: ./gradlew :app:assembleDebug :app:assembleDebugAndroidTest --no-daemon --stacktrace
+
+      - name: Verify fixed signing certificate
+        run: |
+          set -e
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          APKSIGNER="$(ls "$ANDROID_HOME"/build-tools/*/apksigner 2>/dev/null | tail -1)"
+          echo "apksigner=$APKSIGNER"
+          FP="$("$APKSIGNER" verify --print-certs "$APK" | grep -i 'certificate SHA-256 digest' | head -1 | sed -E 's/.*digest:[[:space:]]*//' | tr -d '\r' | tr 'A-F' 'a-f')"
+          echo "APK cert SHA-256: $FP"
+          EXPECT="afee894a9fa61d431be085de0680fcfcd7e7cb40698ee355a2893730c0c18171"
+          if [ -z "$FP" ]; then echo "::error::未能读取 APK 签名指纹"; exit 1; fi
+          echo "$FP" | grep -q "$EXPECT" || {
+            echo "::error::APK 签名指纹不是固定证书 AF:EE:89:4A:…:C1:81:71（实际 $FP），已停止。"
+            exit 1
+          }
 
       - name: Upload debug APK
         uses: actions/upload-artifact@v4

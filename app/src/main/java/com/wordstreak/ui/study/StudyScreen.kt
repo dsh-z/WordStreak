@@ -20,7 +20,13 @@ fun StudyScreen(onOpenReview: () -> Unit = {}) {
         object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
             override fun <T : ViewModel> create(modelClass: Class<T>): T =
-                StudyViewModel(AppContainer.wordBookRepository, AppContainer.wordRepository, AppContainer.studyRepository) as T
+                StudyViewModel(
+                    AppContainer.wordBookRepository,
+                    AppContainer.wordRepository,
+                    AppContainer.studyRepository,
+                    AppContainer.checkInRepository,
+                    AppContainer.settingsRepository
+                ) as T
         }
     }
     val vm: StudyViewModel = viewModel(factory = factory)

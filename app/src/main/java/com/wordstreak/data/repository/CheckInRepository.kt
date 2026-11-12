@@ -33,6 +33,25 @@ class CheckInRepository(private val dao: CheckInDao) {
         return rowId != -1L
     }
 
+    /**
+     * 幂等记录当日学习进度：同一天仅一条记录（date 主键 + upsert），重复调用为更新而非新增。
+     * 业务规则：当天有学习（completedCount > 0）即视为打卡；每日目标只用于首页进度展示，不作打卡门槛。
+     */
+    suspend fun recordProgress(date: String, goalSnapshot: Int, completedCount: Int) {
+        DateValidator.requireValid(date)
+        require(goalSnapshot >= 0) { "目标值不能为负" }
+        require(completedCount >= 0) { "完成数不能为负" }
+        dao.upsert(
+            CheckIn(
+                date = date,
+                completed = completedCount > 0,
+                goalSnapshot = goalSnapshot,
+                completedCount = completedCount,
+                createdAt = System.currentTimeMillis()
+            )
+        )
+    }
+
     suspend fun getByDate(date: String): CheckIn? {
         DateValidator.requireValid(date)
         return dao.getByDate(date)

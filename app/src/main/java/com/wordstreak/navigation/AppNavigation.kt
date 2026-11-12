@@ -83,7 +83,24 @@ fun WordStreakNavHost() {
         }
     }) { innerPadding ->
         NavHost(navController, startDestination = Routes.HOME, modifier = Modifier.padding(innerPadding)) {
-            composable(Routes.HOME) { HomeScreen() }
+            composable(Routes.HOME) {
+                HomeScreen(
+                    onStartStudy = {
+                        navController.navigate(Routes.STUDY) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                    onGoReview = {
+                        navController.navigate(Routes.REVIEW) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
+            }
             composable(Routes.VOCABULARY) {
                 VocabularyScreen(onOpenBook = { id -> navController.navigate("vocabulary/$id") })
             }
