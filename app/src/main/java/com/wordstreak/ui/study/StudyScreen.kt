@@ -15,7 +15,7 @@ import com.wordstreak.di.AppContainer
 import com.wordstreak.ui.components.ScreenScaffold
 
 @Composable
-fun StudyScreen() {
+fun StudyScreen(onOpenReview: () -> Unit = {}) {
     val factory = remember {
         object : ViewModelProvider.Factory {
             @Suppress("UNCHECKED_CAST")
@@ -37,6 +37,7 @@ fun StudyScreen() {
                     }
                 }
                 state.sessionId == null -> {
+                    Button(onClick = onOpenReview, modifier = Modifier.fillMaxWidth()) { Text("单词复习（按到期筛选）") }
                     Text("选择一个词库开始学习", style = MaterialTheme.typography.titleMedium)
                     if (books.isEmpty()) {
                         Text("还没有词库，请先到「词库」页面创建词库并添加单词。")

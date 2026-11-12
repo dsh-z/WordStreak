@@ -25,6 +25,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.wordstreak.ui.calendar.CalendarScreen
 import com.wordstreak.ui.home.HomeScreen
+import com.wordstreak.ui.review.ReviewScreen
 import com.wordstreak.ui.settings.SettingsScreen
 import com.wordstreak.ui.study.StudyScreen
 import com.wordstreak.ui.vocabulary.VocabularyScreen
@@ -35,6 +36,7 @@ object Routes {
     const val VOCABULARY = "vocabulary"
     const val BOOK_DETAIL = "vocabulary/{bookId}"
     const val STUDY = "study"
+    const val REVIEW = "review"
     const val CALENDAR = "calendar"
     const val SETTINGS = "settings"
 }
@@ -57,7 +59,9 @@ fun WordStreakNavHost() {
             val destination = entry?.destination
             topLevelRoutes.forEach { item ->
                 val selected = destination?.hierarchy?.any {
-                    it.route == item.route || it.route?.startsWith("${item.route}/") == true
+                    it.route == item.route ||
+                        it.route?.startsWith("${item.route}/") == true ||
+                        (item.route == Routes.STUDY && it.route == Routes.REVIEW)
                 } == true
                 NavigationBarItem(
                     selected = selected,
@@ -86,7 +90,8 @@ fun WordStreakNavHost() {
             composable(Routes.BOOK_DETAIL, arguments = listOf(navArgument("bookId") { type = NavType.LongType })) { entry ->
                 WordListScreen(bookId = entry.arguments?.getLong("bookId") ?: 0L, onBack = { navController.popBackStack() })
             }
-            composable(Routes.STUDY) { StudyScreen() }
+            composable(Routes.STUDY) { StudyScreen(onOpenReview = { navController.navigate(Routes.REVIEW) }) }
+            composable(Routes.REVIEW) { ReviewScreen(onBack = { navController.popBackStack() }) }
             composable(Routes.CALENDAR) { CalendarScreen() }
             composable(Routes.SETTINGS) { SettingsScreen() }
         }

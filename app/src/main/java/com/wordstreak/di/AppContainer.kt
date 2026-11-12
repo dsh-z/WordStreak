@@ -3,6 +3,7 @@ package com.wordstreak.di
 import android.content.Context
 import com.wordstreak.data.local.WordStreakDatabase
 import com.wordstreak.data.repository.CheckInRepository
+import com.wordstreak.data.repository.ReviewRepository
 import com.wordstreak.data.repository.SettingsRepository
 import com.wordstreak.data.repository.StatisticsRepository
 import com.wordstreak.data.repository.StudyRepository
@@ -39,4 +40,5 @@ object AppContainer {
     val checkInRepository: CheckInRepository by lazy { CheckInRepository(db().checkInDao()) }
     val statisticsRepository: StatisticsRepository by lazy { StatisticsRepository(db().dailyStatDao()) }
     val settingsRepository: SettingsRepository by lazy { SettingsRepository(db().settingsDao()) }
+    val reviewRepository: ReviewRepository by lazy { ReviewRepository(db().reviewDao()) }
 }
