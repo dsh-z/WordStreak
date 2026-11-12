@@ -20,7 +20,9 @@ class StudyRepository(
         return studyDao.insertSession(session)
     }
 
-    suspend fun finishSession(session: StudySession) = studyDao.updateSession(session)
+    suspend fun finishSession(session: StudySession) {
+        studyDao.updateSession(session)
+    }
 
     suspend fun getSession(id: Long): StudySession? = studyDao.getSession(id)
 
@@ -28,13 +30,24 @@ class StudyRepository(
      * 写入学习记录时会快照单词拼写/释义；即使之后单词或词库被删除，历史记录仍可追溯。
      */
     suspend fun addRecord(record: StudyRecord): Long {
+        return studyDao.insertRecord(withWordSnapshot(record))
+    }
+
+    /**
+     * Save the rating and session progress in one Room transaction.
+     * The word snapshot is prepared first; both database writes then commit or roll back together.
+     */
+    suspend fun saveRatingAndSession(record: StudyRecord, session: StudySession): Long {
+        return studyDao.insertRecordAndUpdateSession(withWordSnapshot(record), session)
+    }
+
+    private suspend fun withWordSnapshot(record: StudyRecord): StudyRecord {
         require(record.result in RESULTS) { "非法的学习结果：${record.result}，应为 $RESULTS" }
         val word = record.wordId?.let { wordDao.getById(it) }
-        val enriched = record.copy(
+        return record.copy(
             wordSpelling = record.wordSpelling ?: word?.spelling,
             wordMeaning = record.wordMeaning ?: word?.meaning
         )
-        return studyDao.insertRecord(enriched)
     }
 
     suspend fun recordsBySession(sessionId: Long): List<StudyRecord> =
