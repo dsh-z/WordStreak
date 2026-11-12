@@ -4,6 +4,7 @@ import com.wordstreak.data.local.converter.DateValidator
 import com.wordstreak.data.local.dao.CheckInDao
 import com.wordstreak.data.local.entity.CheckIn
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 /** 打卡仓库：保证同一自然日最多一条打卡记录。 */
 class CheckInRepository(private val dao: CheckInDao) {
@@ -38,6 +39,10 @@ class CheckInRepository(private val dao: CheckInDao) {
     }
 
     fun observeAll(): Flow<List<CheckIn>> = dao.getAll()
+
+    /** 已完成打卡的日期集合（Flow），用于连续打卡计算。 */
+    fun observeCompletedDates(): Flow<List<String>> =
+        dao.getAll().map { list -> list.filter { it.completed }.map { it.date } }
 
     suspend fun recent(limit: Int): List<CheckIn> = dao.getRecentCheckIns(limit)
 

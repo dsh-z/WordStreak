@@ -7,6 +7,7 @@ import com.wordstreak.data.local.dao.WordDao
 import com.wordstreak.data.local.entity.ReviewState
 import com.wordstreak.data.local.entity.StudyRecord
 import com.wordstreak.data.local.entity.StudySession
+import kotlinx.coroutines.flow.Flow
 
 /** 学习仓库：会话、学习记录、复习状态。 */
 class StudyRepository(
@@ -69,6 +70,14 @@ class StudyRepository(
     }
 
     suspend fun reviewState(wordId: Long): ReviewState? = reviewDao.getByWordId(wordId)
+
+    /** 月度日历：某区间内有学习记录的日期（Flow，实时）。 */
+    fun observeActiveDatesBetween(start: String, end: String): Flow<List<String>> =
+        studyDao.observeActiveDatesBetween(start, end)
+
+    /** 每日统计：某天的学习记录（Flow，实时）。 */
+    fun observeDailyRecords(date: String): Flow<List<StudyRecord>> =
+        studyDao.observeDailyRecords(date)
 
     companion object {
         val RESULTS = setOf("AGAIN", "HARD", "GOOD", "EASY")
