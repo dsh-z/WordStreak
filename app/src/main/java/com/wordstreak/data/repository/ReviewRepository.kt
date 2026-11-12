@@ -35,8 +35,9 @@ class ReviewRepository(private val reviewDao: ReviewDao) {
         require(result in ReviewScheduler.RESULTS) { "不支持的评分：$result" }
         DateValidator.requireValid(today)
         val existing = reviewDao.getByWordId(word.id)
-        val intervalDays = ReviewScheduler.nextIntervalDays(result)
-        val dueDate = ReviewScheduler.nextDueDate(result, today)
+        val previousIntervalDays = existing?.intervalDays ?: 0
+        val intervalDays = ReviewScheduler.nextIntervalDays(result, previousIntervalDays)
+        val dueDate = ReviewScheduler.nextDueDate(result, today, previousIntervalDays)
         val updated = ReviewState(
             wordId = word.id,
             dueDate = dueDate,
