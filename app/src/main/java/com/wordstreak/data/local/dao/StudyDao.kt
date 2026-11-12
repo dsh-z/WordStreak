@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import androidx.room.Update
 import com.wordstreak.data.local.entity.StudyRecord
 import com.wordstreak.data.local.entity.StudySession
@@ -14,7 +15,21 @@ interface StudyDao {
     suspend fun insertSession(session: StudySession): Long
 
     @Update
-    suspend fun updateSession(session: StudySession)
+    suspend fun updateSession(session: StudySession): Int
+
+    /**
+     * Save one rating and its session progress atomically.
+     * A missing session update is treated as a failure so the inserted rating rolls back.
+     */
+    @Transaction
+    suspend fun insertRecordAndUpdateSession(
+        record: StudyRecord,
+        session: StudySession
+    ): Long {
+        val recordId = insertRecord(record)
+        check(updateSession(session) == 1) { "学习会话不存在，评分记录未保存" }
+        return recordId
+    }
 
     @Query("SELECT * FROM study_sessions WHERE id = :id")
     suspend fun getSession(id: Long): StudySession?
