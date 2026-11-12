@@ -7,9 +7,12 @@ import com.wordstreak.data.local.entity.BookWithWordCount
 import com.wordstreak.data.local.entity.StudyRecord
 import com.wordstreak.data.local.entity.StudySession
 import com.wordstreak.data.local.entity.Word
+import com.wordstreak.data.repository.CheckInRepository
+import com.wordstreak.data.repository.SettingsRepository
 import com.wordstreak.data.repository.StudyRepository
 import com.wordstreak.data.repository.WordBookRepository
 import com.wordstreak.data.repository.WordRepository
+import com.wordstreak.domain.usecase.StudyStats
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -24,7 +27,9 @@ import kotlinx.coroutines.launch
 class StudyViewModel(
     private val booksRepository: WordBookRepository,
     private val wordsRepository: WordRepository,
-    private val studyRepository: StudyRepository
+    private val studyRepository: StudyRepository,
+    private val checkInRepository: CheckInRepository,
+    private val settingsRepository: SettingsRepository
 ) : ViewModel() {
 
     val books: StateFlow<List<BookWithWordCount>> = booksRepository.observeWithWordCount()
@@ -85,7 +90,7 @@ class StudyViewModel(
 
         viewModelScope.launch {
             _uiState.value = state.copy(isSaving = true, error = null)
-            runCatching {
+            try {
                 val now = System.currentTimeMillis()
                 val updatedCounts = state.counts.toMutableMap().apply {
                     this[result] = (this[result] ?: 0) + 1
@@ -108,8 +113,6 @@ class StudyViewModel(
                     ),
                     updatedSession
                 )
-                updatedSession to updatedCounts
-            }.onSuccess { (updatedSession, updatedCounts) ->
                 currentSession = updatedSession
                 _uiState.value = state.copy(
                     currentIndex = if (updatedSession.completed) state.currentIndex else state.currentIndex + 1,
@@ -118,13 +121,26 @@ class StudyViewModel(
                     isSaving = false,
                     completed = updatedSession.completed
                 )
-            }.onFailure { error ->
+                // 学习记录保存成功后同步当日打卡（幂等；打卡失败不影响学习保存）
+                runCatching { syncDailyCheckIn() }
+            } catch (error: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
                     error = error.message ?: "保存学习记录失败，请重试"
                 )
             }
         }
+    }
+
+    /**
+     * 一天一次打卡：以“当日已学去重单词数”记录进度，completed 由“当天是否有学习”决定。
+     * 每次评分成功后调用，保证中途退出也能及时打卡；同一天多次调用是幂等更新。
+     */
+    private suspend fun syncDailyCheckIn() {
+        val today = DateValidator.today()
+        val goal = settingsRepository.getDailyGoal()
+        val learnedToday = StudyStats.summarize(studyRepository.dailyRecords(today)).wordCount
+        checkInRepository.recordProgress(today, goal, learnedToday)
     }
 
     /** 中途离开：保留已保存的评分记录，并将会话标记为未完成。 */

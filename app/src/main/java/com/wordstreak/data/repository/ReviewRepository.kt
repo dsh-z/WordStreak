@@ -25,6 +25,10 @@ class ReviewRepository(private val reviewDao: ReviewDao) {
         return reviewDao.countDueWords(date)
     }
 
+    /** 待复习数量（Flow，实时）；供首页订阅。 */
+    fun observeDueCount(date: String): kotlinx.coroutines.flow.Flow<Int> =
+        reviewDao.observeDueCount(date)
+
     suspend fun getReviewState(wordId: Long): ReviewState? = reviewDao.getByWordId(wordId)
 
     /**

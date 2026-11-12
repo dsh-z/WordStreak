@@ -5,6 +5,7 @@ import androidx.room.Query
 import androidx.room.Upsert
 import com.wordstreak.data.local.entity.ReviewState
 import com.wordstreak.data.local.entity.Word
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface ReviewDao {
@@ -31,4 +32,11 @@ interface ReviewDao {
             "WHERE rs.wordId IS NULL OR rs.dueDate <= :date"
     )
     suspend fun countDueWords(date: String): Int
+
+    /** 待复习数量（Flow，随 words / review_states 变化实时刷新，用于首页）。 */
+    @Query(
+        "SELECT COUNT(*) FROM words w LEFT JOIN review_states rs ON rs.wordId = w.id " +
+            "WHERE rs.wordId IS NULL OR rs.dueDate <= :date"
+    )
+    fun observeDueCount(date: String): Flow<Int>
 }
