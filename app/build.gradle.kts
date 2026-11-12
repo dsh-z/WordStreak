@@ -1,4 +1,5 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
 
 plugins {
     alias(libs.plugins.android.application)
@@ -44,26 +45,60 @@ configurations.matching { it.name.contains("AndroidTest") }.configureEach {
     }
 }
 
+// ───────────────────────────────────────────────────────────────────────────
+// 固定签名（Stage 3.5）：优先读仓库外本地 keystore.properties；CI 后续可通过环境变量注入。
+// 未配置时 hasFixedSigning=false，回退 AGP 默认 debug 签名（保证无签名环境的构建不受影响）。
+// 严禁把 keystore / 密码 / 私钥提交到 Git。
+// ───────────────────────────────────────────────────────────────────────────
+val keystorePropsFile = rootProject.file("keystore.properties")
+val keystoreProps = Properties().apply {
+    if (keystorePropsFile.exists()) keystorePropsFile.inputStream().use { load(it) }
+}
+val signingValue: (String, String) -> String? = { propKey, envKey ->
+    keystoreProps.getProperty(propKey) ?: System.getenv(envKey)
+}
+val fixedStoreFile = signingValue("storeFile", "WS_STORE_FILE")
+val fixedStorePassword = signingValue("storePassword", "WS_STORE_PASSWORD")
+val fixedKeyAlias = signingValue("keyAlias", "WS_KEY_ALIAS")
+val fixedKeyPassword = signingValue("keyPassword", "WS_KEY_PASSWORD")
+val hasFixedSigning = fixedStoreFile != null && file(fixedStoreFile).exists() &&
+    fixedStorePassword != null && fixedKeyAlias != null && fixedKeyPassword != null
+
 android {
     namespace = "com.wordstreak"
     compileSdk = 37
+
+    signingConfigs {
+        if (hasFixedSigning) {
+            create("fixed") {
+                storeFile = file(fixedStoreFile!!)
+                storePassword = fixedStorePassword
+                keyAlias = fixedKeyAlias
+                keyPassword = fixedKeyPassword
+            }
+        }
+    }
 
     defaultConfig {
         applicationId = "com.wordstreak"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
+        versionCode = 2
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            if (hasFixedSigning) signingConfig = signingConfigs.getByName("fixed")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            if (hasFixedSigning) signingConfig = signingConfigs.getByName("fixed")
         }
     }
 

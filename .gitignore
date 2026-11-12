@@ -12,6 +12,13 @@
 # Local machine config (SDK path) — CI uses ANDROID_HOME
 /local.properties
 
+# Local signing config & keystores — NEVER commit (security)
+/keystore.properties
+*.jks
+*.keystore
+*.p12
+*.pfx
+
 # Local-only bionic build workaround (patched room-compiler); never used by standard/CI build
 /localrepo/
 
