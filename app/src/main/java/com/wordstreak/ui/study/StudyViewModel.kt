@@ -131,7 +131,8 @@ class StudyViewModel(
     /** 中途离开：保留已保存的评分记录，并将会话标记为未完成。 */
     fun exitStudy(onFinished: () -> Unit = {}) {
         val session = currentSession
-        if (session == null) {
+        if (session == null || session.completed) {
+            currentSession = null
             _uiState.value = StudyUiState()
             onFinished()
             return
